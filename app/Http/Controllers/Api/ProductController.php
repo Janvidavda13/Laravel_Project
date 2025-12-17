@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Product;
 
 class ProductController extends Controller
 {
@@ -14,7 +15,10 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return Product::with('category')->paginate(10);
+        return response()->json(
+            Product::with(['category', 'user_details'])->latest()->paginate(10)
+        );
+
     }
 
     /**
@@ -33,13 +37,27 @@ class ProductController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(StoreProductRequest $request)
+    public function store(Request $request)
     {
-        $product = Product::create($request->validated());
+        $request->validate([
+            'name'        => 'required|string',
+            'price'       => 'required|numeric',
+            'quantity'    => 'required|integer',
+            'category_id' => 'required|exists:categories,id'
+        ]);
 
-        event(new ProductCreated($product));
+        $product = Product::create([
+            'name'        => $request->name,
+            'price'       => $request->price,
+            'quantity'    => $request->quantity,
+            'category_id' => $request->category_id,
+            'created_by'  => auth()->id()
+        ]);
 
-        return response()->json($product, 201);
+        return response()->json([
+            'message' => 'Product created successfully',
+            'data'    => $product
+        ], 201);
     }
 
     /**
@@ -50,7 +68,15 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        return $product->load('category');
+        $product->load([
+            'category:id,name',
+            'user_details:id,name,email'
+        ]);
+
+        return response()->json([
+            'message' => 'Product created successfully',
+            'data'    => $product
+        ], 201);
     }
 
     /**
@@ -71,10 +97,21 @@ class ProductController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(UpdateProductRequest $request, $id)
+    public function update(Request $request, Product $product)
     {
-        $product->update($request->validated());
-        return response()->json($product);
+        $request->validate([
+            'name'     => 'sometimes|string',
+            'price'    => 'sometimes|numeric',
+            'quantity' => 'sometimes|integer',
+            'category_id' => 'sometimes|integer'
+        ]);
+
+        $product->update($request->all());
+
+        return response()->json([
+            'message' => 'Product updated successfully',
+            'data'    => $product
+        ]);
     }
 
     /**
@@ -86,6 +123,9 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         $product->delete();
-        return response()->json(['message' => 'Deleted']);
+
+        return response()->json([
+            'message' => 'Product deleted successfully'
+        ]);
     }
 }

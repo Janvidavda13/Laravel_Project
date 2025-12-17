@@ -15,26 +15,19 @@ use App\Http\Controllers\ProductController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
+
 });
 
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth'])->name('dashboard');
 
-// Route::get('/products', function () {
-//     return view('dashboard');
-// })->middleware(['auth'])->name('dasproduct.index');
-
 // Authenticated users only
 Route::middleware('auth')->group(function () {
     Route::resource('products', ProductController::class);
-    // Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 });
-
 
 require __DIR__.'/auth.php';
 
 Auth::routes();
-
-// Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
